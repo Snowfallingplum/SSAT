@@ -1,0 +1,4 @@
+pytorch
+Pillow
+opencv-python
+numpy
