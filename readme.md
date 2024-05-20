@@ -2,6 +2,11 @@
 
 This is the official  pytorch code for SSAT: A Symmetric Semantic-Aware Transformer Network for Makeup Transfer and Removal, which has been accepted by AAAI-2022. Note that only trained models and test code are provided in pytorch code.
 
+## Latest News
+
+Our latest paper was accepted by CVPR2024 and we will make the code publicly available at this URL（https://github.com/Snowfallingplum/CSD-MT）as soon as possible.
+
+
 ## Training code
 
 We have provided the complete training code for the [MindSpore version](https://gitee.com/sunzhaoyang0304/ssat-msp) of the SSAT model.
