@@ -4,7 +4,7 @@ This is the official  pytorch code for SSAT: A Symmetric Semantic-Aware Transfor
 
 ## Latest News
 
-Our latest paper was accepted by CVPR2024 and we will make the code publicly available at this URL（https://github.com/Snowfallingplum/CSD-MT） as soon as possible.
+Our latest paper was accepted by CVPR2024 and we will make the code publicly available at this URL https://github.com/Snowfallingplum/CSD-MT as soon as possible.
 
 
 ## Training code
