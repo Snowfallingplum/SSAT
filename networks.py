@@ -1,7 +1,3 @@
-#!/usr/bin/env python
-# -*- coding:utf-8 -*-
-# Author: Zhaoyang Sun
-
 import torch
 import torch.nn as nn
 from torch.nn import init
@@ -74,6 +70,7 @@ class MultiScaleDis(nn.Module):
 ####################################################################
 # ---------------------------- Encoders -----------------------------
 ####################################################################
+
 class E_content(nn.Module):
     def __init__(self, input_dim, ngf=64):
         super(E_content, self).__init__()
@@ -106,7 +103,6 @@ class E_content(nn.Module):
         # x (64*4, 64, 64)
         return feature_map1, feature_map2, feature_map3
 
-
 class E_makeup(nn.Module):
     def __init__(self, input_dim, ngf=64):
         super(E_makeup, self).__init__()
@@ -135,7 +131,6 @@ class E_makeup(nn.Module):
         out = self.relu3(out)
         # x (64*4, 64, 64)
         return out
-
 
 class E_semantic(nn.Module):
     def __init__(self, input_dim, ngf=32):
@@ -183,8 +178,6 @@ class FeatureFusion(nn.Module):
         content_feature_map2 = x[1]
         content_feature_map3 = x[2]
         semantic_feature_map = y
-        # print(content_feature_map3.shape)
-        # print(semantic_feature_map.shape)
         out = torch.cat([content_feature_map3, semantic_feature_map], dim=1)
         out = self.conv1(out)
         out = self.Instance1(out)
@@ -203,6 +196,7 @@ class FeatureFusion(nn.Module):
                             feature_map5
                             ], dim=1)
         return output
+
 ####################################################################
 # ----------------------- Symmetry Transformer----------------------
 ####################################################################
@@ -231,18 +225,6 @@ class SymmetryAttention(nn.Module):
         self.fa_conv = LeakyReLUConv2d(in_dim, in_dim // 8, kernel_size=1, stride=1, padding=0, norm=norm, sn=sn)
         self.fb_conv = LeakyReLUConv2d(in_dim, in_dim // 8, kernel_size=1, stride=1, padding=0, norm=norm, sn=sn)
 
-    def bis(self, input, dim, index):
-        # batch index select
-        # input: [N, ?, ?, ...]
-        # dim: scalar > 0
-        # index: [N, idx]
-        views = [input.size(0)] + [1 if i!=dim else -1 for i in range(1, len(input.size()))]
-        expanse = list(input.size())
-        expanse[0] = -1
-        expanse[dim] = -1
-        index = index.view(views).expand(expanse)
-        return torch.gather(input, dim, index)
-
     def warp(self, fa, fb, a_raw, b_raw, alpha):
         '''
             calculate correspondence matrix and warp the exemplar features
@@ -261,21 +243,18 @@ class SymmetryAttention(nn.Module):
         fa = fa / torch.norm(fa, dim=1, keepdim=True)
         fb = fb / torch.norm(fb, dim=1, keepdim=True)
 
-        # correlation matrix, gonna be huge (4096*4096)
-        # use matrix multiplication for CUDA speed up
-        # Also, calculate the transpose of the atob correlation
-
         # warp the exemplar features b, taking softmax along the b dimension
         energy_ab_T = torch.bmm(fb.transpose(-2, -1), fa) * alpha
-        corr_ab_T = F.softmax(energy_ab_T, dim=2)  # n*HW*C @ n*C*HW -> n*HW*HW
+        # fix bug dim=1 in softmax, see https://github.com/Snowfallingplum/SSAT/issues/5
+        corr_ab_T = F.softmax(energy_ab_T, dim=1)  # n*HW*C @ n*C*HW -> n*HW*HW 
         # print(softmax_weights.shape, b_raw.shape)
         b_warp = torch.bmm(b_raw.view(n, raw_c, h * w), corr_ab_T)  # n*HW*1
         b_warp = b_warp.view(n, raw_c, h, w)
 
         energy_ba_T = torch.bmm(fa.transpose(-2, -1), fb) * alpha
-        corr_ba_T = F.softmax(energy_ba_T, dim=2)  # n*HW*C @ n*C*HW -> n*HW*HW
-        # print(corr_ab_T.shape)
-        # print(softmax_weights.shape, b_raw.shape)
+        # fix bug dim=1 in softmax, see https://github.com/Snowfallingplum/SSAT/issues/5
+        corr_ba_T = F.softmax(energy_ba_T, dim=1)  # n*HW*C @ n*C*HW -> n*HW*HW
+
         a_warp = torch.bmm(a_raw.view(n, raw_c, h * w), corr_ba_T)  # n*HW*1
         a_warp = a_warp.view(n, raw_c, h, w)
         return corr_ab_T, corr_ba_T, a_warp, b_warp
@@ -313,7 +292,6 @@ class Decoder(nn.Module):
         out=self.img_conv(out)
         out = self.tanh(out)
         return out
-
 
 ####################################################################
 # -------------------------- Basic Blocks --------------------------
@@ -437,7 +415,6 @@ def get_scheduler(optimizer, opts, cur_ep=-1):
         def lambda_rule(ep):
             lr_l = 1.0 - max(0, ep - opts.n_ep_decay) / float(opts.n_ep - opts.n_ep_decay + 1)
             return lr_l
-
         scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda_rule, last_epoch=cur_ep)
     elif opts.lr_policy == 'step':
         scheduler = lr_scheduler.StepLR(optimizer, step_size=opts.n_ep_decay, gamma=0.1, last_epoch=cur_ep)
